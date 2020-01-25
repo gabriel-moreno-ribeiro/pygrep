@@ -1,24 +1,6 @@
 # pygrep
 
-A `grep` clone written from scratch in Python, with no third-party dependencies.
-
-I built this to understand how a real command-line search tool is put together:
-argument parsing, streaming input, context windows, recursive directory walks,
-colored output and POSIX exit codes.
-
-## Features
-
-- Regular expressions (Python `re` syntax) or fixed strings (`-F`)
-- `-i` ignore case, `-v` invert, `-w` whole words, `-x` whole lines
-- `-n` line numbers, `-c` count, `-o` only the matching part
-- `-l` / `-L` list files with / without matches
-- `-A N`, `-B N`, `-C N` context lines with `--` group separators
-- `-r` recursive search with `--include` / `--exclude` globs
-- `-m N` stop after N matches, `-q` quiet mode
-- `--color=always|never|auto` highlighting
-- grep-compatible exit codes: `0` match, `1` no match, `2` error
-
-## Usage
+O primeiro da série. Eu queria entender como o `grep` funciona por dentro antes de sair usando ferramenta de busca como caixa preta, então reescrevi ele em Python puro, sem nenhuma dependência. Foi mais trabalho do que eu esperava: o grep "de verdade" tem dezenas de flags e cada uma interage com as outras (tenta combinar `-c` com `-v` e `-m` e vê o que acontece).
 
 ```sh
 python pygrep.py -rn "TODO" src/
@@ -27,23 +9,19 @@ cat file.txt | python pygrep.py -c "^#"
 python pygrep.py -o "[0-9]+" data.csv
 ```
 
-## Running the tests
+O que ele faz:
 
-```sh
-python -m unittest discover -s tests -v
-```
+- regex (sintaxe do `re`) ou string fixa com `-F`
+- `-i`, `-v`, `-w`, `-x` (ignora caixa, inverte, palavra inteira, linha inteira)
+- `-n`, `-c`, `-o`, `-l`, `-L`, `-m N`, `-q`
+- contexto `-A`, `-B`, `-C` com o separador `--` entre grupos
+- `-r` recursivo com `--include` / `--exclude`
+- cores (`--color=auto|always|never`) e os mesmos códigos de saída do grep: 0 achou, 1 não achou, 2 erro
 
-## How it works
+A parte que eu mais gostei de fazer foi o contexto: `search_lines()` é um generator que guarda um ring buffer pequeno com as linhas "antes" e uma contagem regressiva das linhas "depois", então o arquivo nunca é carregado inteiro na memoria. Parece detalhe, mas é o que faz um `grep -C 3` num log de 2 GB funcionar.
 
-1. `build_parser()` turns argv into an `Options` dataclass.
-2. `compile_pattern()` wraps the pattern for `-F`, `-w`, `-x` and `-i`.
-3. `iter_files()` expands paths (stdin, files or a recursive walk).
-4. `search_lines()` is a generator that keeps a small ring buffer of "before"
-   lines and a countdown of "after" lines, so context is emitted lazily without
-   loading whole files into memory.
-5. `grep_stream()` formats each emitted line (prefixes, colors, separators) and
-   handles the summary modes (`-c`, `-l`, `-L`, `-q`).
+Testes: `python -m unittest discover -s tests -v`.
 
-## License
+---
 
-MIT
+**EN:** a `grep` clone in dependency-free Python, written to learn how a real search tool is put together: argument parsing that mirrors GNU grep (including how the flags interact), streaming input with a small ring buffer for `-A/-B/-C` context so huge files never sit in memory, recursive walks with include/exclude globs, colored output and grep-compatible exit codes. Run the tests with `python -m unittest discover -s tests -v`. MIT.
